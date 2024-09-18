@@ -1,0 +1,490 @@
+import java.io.*;
+import java.util.Random;
+import java.util.Scanner;
+
+public class CPU {
+
+static	int PC,SP,IR,AC,X,Y;
+static	int timer, instrCount;
+static	int SSTACK=2000;
+	static boolean mode = true; //true for user mode
+	
+	static boolean interrupt = false;
+	
+	public static void main(String args[]) {
+		
+		String name= null;
+		String processName="java Memory";
+		name= args[0];
+		timer= Integer.parseInt(args[1]);
+		
+		
+		
+		try {
+			
+			Runtime rt = Runtime.getRuntime();
+			
+			Process proc = rt.exec(processName+ name);
+			
+			 InputStream is = proc.getInputStream();
+			 OutputStream os = proc.getOutputStream();
+			PrintWriter pw = new PrintWriter(os);
+			Scanner memoryRead = new Scanner(is);
+			
+			
+
+			
+			while(true) {
+				
+				
+				
+				int data = rMemory(pw,is,os,memoryRead,PC);
+				if(data !=-1) {
+				process(pw,is,os,memoryRead,data);
+				}
+				else {
+					System.out.println("Not reading");
+					break;
+				}
+				if(instrCount >0 &&(instrCount % timer)==0 && interrupt ==false) {
+					interrupt= true;
+					//interrupt from timer
+					interruptTimer(pw,is,os,memoryRead);
+					
+				}
+				
+			}
+			
+			proc.waitFor();
+			int exitVal = proc.exitValue();
+			 System.out.println("Process exited: " + exitVal);
+			 
+		}catch(Exception a) {
+			System.out.println("error");
+		}
+		
+		
+	}
+	
+public static int rMemory(PrintWriter pw, InputStream is,OutputStream os,Scanner memoryRead,int pc) {
+	int temp2=0;
+	String temp;
+	permission(pc);
+	pw.printf("r " + pc +"\n");
+	pw.flush();
+	if(memoryRead.hasNext()) {
+		temp= memoryRead.next();
+	    temp2 = Integer.parseInt(temp);
+	    return temp2;
+	} 
+	 return -1;
+	
+	
+}
+
+public static void wMemory(PrintWriter pw, InputStream is,OutputStream os,int PC, int data) {
+	
+	pw.printf("w" + PC+ data +"\n");
+	pw.flush();
+	
+}
+
+	
+public static void permission(int PC) {
+	if(mode && PC > 1000) {
+		
+		System.out.println("Tried to access system stack without permission. Exiting");
+		System.exit(0);
+	}
+	
+	
+}
+	
+public static void process(PrintWriter pw, InputStream is,OutputStream os,Scanner memoryRead,int instruction) {
+	
+	IR= instruction;
+	int value;
+	switch(IR) {
+	case 1: //Load the value into the AC
+		PC++;
+		value= rMemory(pw,is,os,memoryRead,PC);
+		AC= value;
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+		
+		
+	case 2://Load the value at the address into the AC
+		PC++;
+		value= rMemory(pw,is,os,memoryRead,PC);
+		AC= rMemory(pw,is,os,memoryRead,value);
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+	case 3://Load the value from the address found in the given address into the AC
+		PC++;
+		value= rMemory(pw,is,os,memoryRead,PC);
+		value= rMemory(pw,is,os,memoryRead,value);
+		AC= rMemory(pw,is,os,memoryRead,value);
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+		
+	case 4://Load the value at (address+X) into the AC
+		PC++;
+		value= rMemory(pw,is,os,memoryRead,PC);
+		value+=X;
+		AC= rMemory(pw,is,os,memoryRead,value);
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+		
+	case 5://Load the value at (address+Y) into the AC
+		PC++;
+		value= rMemory(pw,is,os,memoryRead,PC);
+		value+=Y;
+		AC= rMemory(pw,is,os,memoryRead,value);
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+		
+	case 6://Load from (Sp+X) into the AC (if SP is 990, and X is 1, load from 991).
+		
+		value= rMemory(pw,is,os,memoryRead,SP);
+		value+=X;
+		AC= rMemory(pw,is,os,memoryRead,value);
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+		
+	case 7://Store the value in the AC into the address
+		PC++;
+		value= rMemory(pw,is,os,memoryRead,PC);
+		wMemory(pw,is,os,value,AC);
+		
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+		
+	case 8://Gets a random int from 1 to 100 into the AC
+		
+		Random rInt= new Random();
+		value= rInt.nextInt(100)+1;
+		AC= value;
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+		
+	case 9: //If port=1, writes AC as an int to the screen
+			//If port=2, writes AC as a char to the screen
+	
+		PC++;
+		value= rMemory(pw,is,os,memoryRead, PC);
+		if(value==1) {
+		System.out.println(AC);
+			
+		}
+		else {
+			System.out.println((char)AC);
+		}
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+	case 10://Add the value in X to the AC
+		
+		
+		AC += X;
+		
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+		
+	case 11://Add the value in Y to the AC
+	
+		
+		AC += Y;
+		
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+	case 12://Subtract the value in X from the AC
+		
+		
+		AC -= X;
+		
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+	case 13://Subtract the value in Y from the AC
+		
+		
+		AC -= Y;
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+		
+	case 14://Copy the value in the AC to X
+	
+		
+		X= AC;
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+	case 15://Copy the value in X to the AC
+		
+		AC= X;
+		
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+	case 16://Copy the value in the AC to Y
+		
+		
+		Y= AC;
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+	case 17://Copy the value in Y to the AC
+	
+		
+		AC= Y;
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+	case 18://Copy the value in AC to the SP
+		
+		
+		pushStack(pw,is,os,memoryRead,AC);
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+		
+	case 19://Copy the value in SP to the AC
+		
+		
+		AC= popStack(pw,is,os,memoryRead);
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+		
+	case 20: //Jump to the address
+		PC++;
+		
+		value=rMemory(pw,is,os,memoryRead, PC);
+		
+		PC= value;
+		
+		if(interrupt==false)
+			instrCount++;
+		
+		break;
+		
+	case 21://Jump to the address only if the value in the AC is zero
+		PC++;
+		
+		if(AC==0) {
+			value=rMemory(pw,is,os,memoryRead, PC);
+			
+			PC= value;
+			if(interrupt==false)
+				instrCount++;
+			break;
+			
+		}
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+	case 22://Jump to the address only if the value in the AC is not zero
+		PC++;
+		
+		if(AC!=0) {
+			value=rMemory(pw,is,os,memoryRead, PC);
+			
+			PC= value;
+			if(interrupt==false)
+				instrCount++;
+			break;
+		}
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+		
+	case 23://Push return address onto stack, jump to the address
+		PC++;
+		pushStack(pw,is,os,memoryRead,PC+1);
+		value=rMemory(pw,is,os,memoryRead, PC);
+		PC=value;
+		if(interrupt==false)
+			instrCount++;
+	
+		break;
+		
+	case 24://Pop return address from the stack, jump to the address
+		PC++;
+		value=popStack(pw,is,os,memoryRead);
+		PC= value;
+		if(interrupt==false)
+			instrCount++;
+	
+		break;
+		
+	case 25://Increment the value in X
+	
+		X++;
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+		
+	case 26://Decrement the value in X
+		
+		
+		X--;
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+		
+	case 27://Push AC onto stack
+		
+		
+		pushStack(pw,is,os,memoryRead,AC);
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+		
+	case 28://Pop from stack into AC
+		PC++;
+		
+		AC=popStack(pw,is,os,memoryRead);
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+		
+	case 29://Perform system call
+		
+		
+		interrupt=true;
+		mode=false;
+		
+		value= SP;
+		SP= SSTACK;
+		pushStack(pw,is,os,memoryRead,value);
+		
+		value= PC++;
+		pushStack(pw,is,os,memoryRead,value);
+		PC=1500;
+		
+		
+		if(interrupt==false)
+			instrCount++;
+		PC++;
+		break;
+		
+	case 30: //Return from system call
+		
+		PC=popStack(pw,is,os,memoryRead);
+		SP=popStack(pw,is,os,memoryRead);
+		mode=true;
+		interrupt=false;
+		instrCount++;
+		
+		
+		PC++;
+		break;
+		
+	case 50://End execution
+	instrCount++;
+	System.exit(0);
+	break;
+	
+	default:
+		System.out.println("Error in Switch Case");
+		System.exit(0);
+	break;
+	
+	}
+	
+	
+	
+}
+
+public static void interruptTimer(PrintWriter pw, InputStream is, OutputStream os, Scanner memoryRead) {
+	
+	mode=false;
+	int num= SP;
+	
+	SP= SSTACK;
+	pushStack(pw,is,os,memoryRead,num);
+	num=PC;
+	PC= 1000;
+	pushStack(pw,is,os,memoryRead,num);
+	
+	
+}
+
+public static void pushStack(PrintWriter pw, InputStream is, OutputStream os,Scanner memoryRead, int num) {
+	SP--;
+	wMemory(pw,is,os,SP,num);
+	
+}
+
+public static int popStack(PrintWriter pw, InputStream is, OutputStream os,Scanner memoryRead) {
+	
+	int temp= rMemory(pw,is,os,memoryRead,SP);
+	wMemory(pw,is,os,SP,0);
+	SP++;
+	return temp;
+	
+	
+}
+
+	
+	
+}
