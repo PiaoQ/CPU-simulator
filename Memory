@@ -1,0 +1,125 @@
+import java.util.Scanner;
+
+import java.io.*;
+
+
+public class Memory {
+	
+	final static int[] memory = new int[2000];
+	
+	public static void main(String args[]) {
+		
+		
+			File text =null;
+			Scanner CPU = new Scanner(System.in);
+			
+				
+				text = new File(args[0]);
+			
+			
+			
+			initialize(text);
+			
+			
+			readWrite(CPU);
+			
+			
+		
+			
+		
+		
+		
+		
+		
+	}
+
+	
+	
+	
+	public static void initialize(File text) {
+		
+		try {
+			
+			@SuppressWarnings("resource")
+			Scanner scanner = new Scanner(text);
+			
+			String skip;
+			int readInt;
+			int i=0;
+			
+			while(scanner.hasNext()) {
+				
+				if(scanner.hasNextInt()) {
+					readInt= scanner.nextInt();
+					memory[i++]= readInt;	
+				}
+				else {
+					skip = scanner.next();
+					
+					if(skip.charAt(0)=='.')
+						i = Integer.parseInt(skip.substring(1));
+					
+				//	else if(skip.equals("//"))
+					//	scanner.nextLine();
+					
+					else
+						scanner.nextLine();
+				}
+				
+				
+				
+			}
+			
+			
+		}
+		catch(FileNotFoundException a) {
+			a.printStackTrace();
+		}
+		
+		
+		
+	}
+	
+	
+	
+	public static void readWrite(Scanner CPU) {
+		String input;
+		int temp;
+		String[] tokens;
+		while(true) {
+			
+			if(CPU.hasNext()) {
+				
+				input = CPU.nextLine();
+				tokens= input.split(" ");
+				if(tokens[0].equals("r")) {
+					temp=Integer.parseInt(tokens[1]);
+					System.out.println(memory[temp]);
+					
+				}
+				else {
+					int i=Integer.parseInt(tokens[1]);
+					int j=Integer.parseInt(tokens[2]);
+					memory[i]=j;
+					
+				}
+				
+			}
+			else 
+				break;
+			
+		}
+		
+		
+		
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+}
