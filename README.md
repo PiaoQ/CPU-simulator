@@ -1,11 +1,9 @@
-The files submitted are:
-Project Summery.docx
+The files are:
 ReadMe.txt
 Sample5.txt
 CPU.java
 Memory.java
 
-The Project Summery.docx is the summery for the project.
 
 Sample5.txt is the program I made and should out put "PROJECT IS HARD"
 
